@@ -1,22 +1,27 @@
 package com.zerobase.convpay.service;
 
 import com.zerobase.convpay.dto.*;
-import com.zerobase.convpay.type.MoneyUseCancelResult;
-import com.zerobase.convpay.type.MoneyUseResult;
-import com.zerobase.convpay.type.PayCancelResult;
-import com.zerobase.convpay.type.PayResult;
+import com.zerobase.convpay.type.*;
 
 public class ConveniencePayService {
 
     // 머니 어댑터 생성
     private final MoneyAdapter moneyAdapter = new MoneyAdapter();
+    private final CardAdapter cardAdapter = new CardAdapter();
 
     public PayResponse pay(PayRequest payRequest) {
-        MoneyUseResult moneyUseResult =
-            moneyAdapter.use(payRequest.getPayAmount());
+        PaymentInterface paymentInterface;
+
+        if (payRequest.getPayMethodType() == PayMethodType.CARD) {
+            paymentInterface = cardAdapter;
+        } else {
+            paymentInterface = moneyAdapter;
+        }
+
+        PaymentResult paymentResult = paymentInterface.payment(payRequest.getPayAmount());
 
         // fail case
-        if (moneyUseResult == MoneyUseResult.USE_FAIL) {
+        if (paymentResult == PaymentResult.PAYMENT_FAIL) {
             return new PayResponse(PayResult.FAIL, 0);
         }
 
@@ -25,10 +30,17 @@ public class ConveniencePayService {
     }
 
     public PayCancelResponse payCancel(PayCancelRequest payCancelRequest) {
-        MoneyUseCancelResult moneyUseCancelResult = moneyAdapter.useCancel(
-            payCancelRequest.getPayCancelAmount());
+        PaymentInterface paymentInterface;
 
-        if (moneyUseCancelResult == MoneyUseCancelResult.MONEY_USE_CANCEL_FAIL) {
+        if (payCancelRequest.getPayMethodType() == PayMethodType.CARD) {
+            paymentInterface = cardAdapter;
+        } else {
+            paymentInterface = moneyAdapter;
+        }
+
+        CancelPaymentResult cancelPaymentResult = paymentInterface.cancelPayment(payCancelRequest.getPayCancelAmount());
+
+        if (cancelPaymentResult == CancelPaymentResult.CANCEL_PAYMENT_FAIL) {
             return new PayCancelResponse(PayCancelResult.PAY_CANCEL_FAIL, 0);
         }
 
