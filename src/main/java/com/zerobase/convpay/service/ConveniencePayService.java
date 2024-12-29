@@ -1,13 +1,19 @@
 package com.zerobase.convpay.service;
 
-import com.zerobase.convpay.dto.*;
+import com.zerobase.convpay.dto.PayCancelRequest;
+import com.zerobase.convpay.dto.PayCancelResponse;
+import com.zerobase.convpay.dto.PayRequest;
+import com.zerobase.convpay.dto.PayResponse;
 import com.zerobase.convpay.type.*;
 
 public class ConveniencePayService {
-
-    // 머니 어댑터 생성
+    // 일부만 DIP를 지키고 있음
+    // 어댑터 생성
     private final MoneyAdapter moneyAdapter = new MoneyAdapter();
     private final CardAdapter cardAdapter = new CardAdapter();
+    // DIP를 적용하는 경우 코드 한줄로 할인 정책 변경이 가능해진다.
+//    private final DiscountInterface discountInterface = new DiscountByPayMethod();
+    private final DiscountInterface discountInterface = new DiscountByConvenience();
 
     public PayResponse pay(PayRequest payRequest) {
         PaymentInterface paymentInterface;
@@ -18,7 +24,8 @@ public class ConveniencePayService {
             paymentInterface = moneyAdapter;
         }
 
-        PaymentResult paymentResult = paymentInterface.payment(payRequest.getPayAmount());
+        Integer discountAmount = discountInterface.getDiscountedAmount(payRequest);
+        PaymentResult paymentResult = paymentInterface.payment(discountAmount);
 
         // fail case
         if (paymentResult == PaymentResult.PAYMENT_FAIL) {
@@ -26,7 +33,7 @@ public class ConveniencePayService {
         }
 
         // Success Case
-        return new PayResponse(PayResult.SUCCESS, payRequest.getPayAmount());
+        return new PayResponse(PayResult.SUCCESS, discountAmount);
     }
 
     public PayCancelResponse payCancel(PayCancelRequest payCancelRequest) {
